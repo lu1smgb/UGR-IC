@@ -448,84 +448,120 @@
 ; Aunque se usara como la jugada que haces porque "no sabes que hacer"
 
 ; Reglas muy prioritarias a la hora de ganar/defenderse
+
+; Enlaces de referencia
+; http://clipsrules.sourceforge.net/documentation/v624/bpg.htm#:~:text=5.4.6-,Exists%20Conditional%20Element,-The%20exists%20conditional
+;
+;
+;
+;
+;
+
 (defrule ir_a_ganar
-    (salience 100)
+    (salience 8000)
     ?y <- (Turno M)
-    ?f <- (Ganaria M ?c)
+    ?x <- (Ganaria M ?c)
+    (Tablero Juego ?f ?c _)
+    ?z <- (Caeria ?f ?c)
+    (not (exists (Jugar ?)))
     =>
     (assert (Jugar ?c) (criterio))
-    (retract ?f ?y)
+    (retract ?x ?y ?z)
     (printout t "Tengo la oprtunidad de ganar" crlf)
 )
 (defrule impedir_derrota
-    (salience 95)
+    (salience 7999)
     ?y <- (Turno M)
-    ?f <- (Ganaria J ?c)
+    ?x <- (Ganaria J ?c)
+    (Tablero Juego ?f ?c _)
+    ?z <- (Caeria ?f ?c)
+    (not (exists (Jugar ?)))
     =>
     (assert (Jugar ?c) (criterio))
-    (retract ?f ?y)
+    (retract ?x ?y ?z)
     (printout t "El humano está a punto de ganar" crlf)
 )
 
 ; Si veo que hay dos fichas conectadas, intento conectar otra mas
-(defrule conectar_tres_extremo
-    (salience 80)
+(defrule conectar_tres_extremo_sig
+    (salience 950)
     ?y <- (Turno M)
     (Conectado ?t & Juego|Analisis ?f ?c ?m & h|v|d1|d2 ?f1 ?c1 M) ; si hay dos fichas conectadas
     (Siguiente ?f1 ?c1 ?m ?f2 ?c2) ; y en la siguiente de la alineacion
-    ?x <- (Caeria ?f3 ?c2) ; puedo jugar (hacer retract de esto? tanto como en la sig.?)
+    ?x <- (Caeria ?f2 ?c2)
+    (not (exists (Jugar ?)))
     =>
     (retract ?x ?y)
-    (assert (Jugar ?c) (criterio)) ; pues juego
+    (assert (Jugar ?c2) (criterio)) ; pues juego
+    (printout t "Voy a conectar tres para tener una posibilidad de conectar 4 mas tarde" crlf)
+)
+
+(defrule conectar_tres_extremo_ant
+    (salience 950)
+    ?y <- (Turno M)
+    (Conectado ?t & Juego|Analisis ?f ?c ?m & h|v|d1|d2 ?f1 ?c1 M) ; si hay dos fichas conectadas
+    (Anterior ?f ?c ?m ?f2 ?c2) ; y en la siguiente de la alineacion
+    ?x <- (Caeria ?f2 ?c2)
+    (not (exists (Jugar ?)))
+    =>
+    (retract ?x ?y)
+    (assert (Jugar ?c2) (criterio)) ; pues juego
     (printout t "Voy a conectar tres para tener una posibilidad de conectar 4 mas tarde" crlf)
 )
 
 ; Tambien se pueden conectar tres separadas, salvo en vertical que no se puede
 (defrule conectar_tres_entre
-    (salience 80)
+    (salience 1000)
     ?y <- (Turno M)
-    (Tablero Juego ?f ?c ?j)
+    (Tablero Juego ?f ?c M)
     (Siguiente ?f ?c ?m & h|d1|d2 ?f1x ?f2x)
+    (Tablero Juego ?f1x ?c1x _)
     (Siguiente ?f1x ?c1x ?m ?f2 ?c2)
-    (Tablero ?f2 ?c2 ?j)
+    (Tablero ?f2 ?c2 M)
+    (not (exists (Jugar ?)))
     ?x <- (Caeria ?f1x ?c1x)
     =>
-    (retract ?x ?y)
-    (assert (Jugar ?c1x) (criterio))
+    (retract ?y)
+    (assert (Jugar ?c1x))
     (printout t "Voy a conectar tres para tener una posibilidad de conectar 4 mas tarde" crlf)
 )
 
 ; Por si queremos conectar dos
 (defrule conectar_dos_sig
-    (salience 70)
+    (salience 800)
     ?y <- (Turno M)
-    (Tablero Juego ?f ?c ?j)
+    (Tablero Juego ?f ?c M)
     (Siguiente ?f ?c ?m & h|v|d1|d2 ?f1 ?c1)
+    (Tablero Juego ?f1 ?c1 _)
+    (not (exists (Jugar ?)))
     ?x <- (Caeria ?f1 ?c1)
     =>
-    (retract ?x ?y)
-    (assert (Jugar ?c1) (criterio))
+    (retract ?y)
+    (assert (Jugar ?c1))
     (printout t "Voy a hacer conexiones de dos fichas" crlf)
 )
 
 (defrule conectar_dos_ant
-    (salience 70)
+    (salience 800)
     ?y <- (Turno M)
-    (Tablero Juego ?f ?c ?j)
+    (Tablero Juego ?f ?c M)
     (Anterior ?f ?c ?m & h|v|d1|d2 ?f1 ?c1)
+    (Tablero Juego ?f1 ?c1 _)
+    (not (exists (Jugar ?)))
     ?x <- (Caeria ?f1 ?c1)
     =>
-    (retract ?x ?y)
-    (assert (Jugar ?c1) (criterio))
+    (retract ?y ?x)
+    (assert (Jugar ?c1))
     (printout t "Voy a hacer conexiones de dos fichas" crlf)
 )
 
 (defrule clips_juega_con_criterio
-    (declare (salience 10000))
+    (declare (salience 9999))
     ?f <- (Jugar ?c)
-    ?g <- (criterio)
     =>
     (printout t "Por tanto, JUEGO en la columna " ?c crlf)
-    (retract ?f ?g)
+    (retract ?f)
     (assert (Juega M ?c))
 )
+
+; ¿¿?¿? PORQUE NO ME COGE ESTAS REGLAS AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
