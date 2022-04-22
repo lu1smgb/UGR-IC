@@ -1,3 +1,7 @@
+; Ejercicio 3 de la práctica 1
+; Luis Miguel Guirado Bautista
+; Curso 2021/22
+
 ; Así, la práctica consiste en crear un programa en CLIPS que:
 ; Le pregunte al usuario que pide asesoramiento lo que le
 ;   preguntaríais a alguien que os pida consejo en ese sentido,
@@ -51,10 +55,91 @@
     (Asignatura FIS "Fundamentos de Ingenieria del Software")
     ;---------------------------------------------------------------
 )
+
+; PAG 16 del FAQ
+(deftemplate num_pregunta (slot num))
+
+(deffacts Preguntas
+    (Pregunta 1 "Te gusta la programacion?")
+    (Pregunta 2 "Te gustan las matematicas?")
+    (Pregunta 3 "Se te dan bien las matematicas?")
+    (Pregunta 4 "Te gusta lo relacionado con la inteligencia artificial?")
+    (Pregunta 5 "Te gusta el mundo de la robotica?")
+    (Pregunta 6 "Te gustan los videojuegos?")
+    (Pregunta 7 "Te gusta la informatica web?")
+    (Pregunta 8 "Te gustan los sistemas informaticos?")
+    (Pregunta 9 "Te gustan las redes y los servidores?")
+    (Pregunta 10 "Te gustan las bases de datos?")
+    (num_pregunta (num 11))
 )
 
-; TODO: Formular preguntas del programa
+(defrule PreguntasAsignaturas
+    (declare (salience 9998))
+    ?x <- (Asignatura ? ?a)
+    ?y <- (num_pregunta (num ?n))
+    =>
+    (assert (Pregunta ?n (str-cat (str-cat "Te ha gustado la asignatura " ?a) "?")))
+    (retract ?x)
+    (modify ?y (num (+ ?n 1)))
+)
 
-; (Consejo <nombre de la rama> <contexto>)
-; (Calificacion_media Alta|Media|Baja)
-; (calificacion_media ?c)
+(defrule inicio
+    (declare (salience 9999))
+    =>
+    (printout t
+    "Hola! No sabes que mencion escoger? No te preocupes!" crlf
+    "Contesta a algunas preguntas y te dire que mencion deberias escoger y los motivos por los que deberias escogerla" crlf
+    "Empecemos!" crlf crlf)
+)
+
+(defrule preguntar
+    ?x <- (Pregunta ?np ?p)
+    =>
+    (printout t ?p crlf)
+    (assert (Respuesta ?np (upcase (readline))))
+    (retract ?x)
+)
+
+; (defrule test_respuesta
+;     (Respuesta ?np ?r)
+;     =>
+;     (printout t ?r crlf)
+; )
+
+(defrule valorar_respuesta
+    ?x <- (Respuesta ?np ?r)
+    =>
+    (assert (Valoracion ?np 
+        (switch ?r
+            (case "MUCHISIMO" then 5)
+            (case "ME ENCANTA" then 5)
+            (case "5" then 5)
+            ;-------------------------------------
+            (case "SI" then 4)
+            (case "MUCHO" then 4)
+            (case "BASTANTE" then 4)
+            (case "ME GUSTA" then 4)
+            (case "4" then 4)
+            ;------------------------------------
+            (case "NO SE" then 3)
+            (case "REGULAR" then 3)
+            (case "MAS O MENOS" then 3)
+            (case "NI IDEA" then 3)
+            (case "3" then 3)
+            ;------------------------------------
+            (case "NO" then 2)
+            (case "POCO" then 2)
+            (case "UN POCO" then 2)
+            (case "NO MUCHO" then 3)
+            (case "NO TANTO" then 3)
+            (case "2" then 2)
+            ;------------------------------------
+            (case "MUY POCO" then 1)
+            (case "NADA" then 1)
+            (case "NO ME GUSTA" then 1)
+            (case "PARA NADA" then 1)
+            (case "1" then 1)
+            (default 3)
+        )
+    ))
+)
