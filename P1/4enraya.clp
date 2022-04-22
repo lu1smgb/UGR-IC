@@ -397,7 +397,7 @@
 
 ; Reglas que deduce oportunidades en las que un jugador puede ganar
 ; Vienen etiquetadas segun el documento de la relacion, al principio.
-(defrule podria_ganar_A ; 
+(defrule podria_ganar_A
     (3_en_linea ? ?m & h|v|d1|d2 ?y ?x ?y1 ?x1 ?j & M|J)
     (Siguiente ?y1 ?x1 ?m ?ys ?xs)
     (Caeria ?ys ?xs)
@@ -433,10 +433,19 @@
     (assert (Ganaria ?j ?x2))
 )
 
-(defrule victoria_evitada
-    ?f <- (Ganaria ?j ?x)
-    (Tablero Juego ?y ?x ?~j)
+(defrule victoria_evitada_xM
+    ?f <- (Ganaria J ?x)
+    (Juega M ?x)
     =>
+    (printout "Victoria del humano evitada" crlf)
+    (retract ?f)
+)
+
+(defrule victoria_evitada_xJ
+    ?f <- (Ganaria M ?x)
+    (Juega J ?x)
+    =>
+    (printout "Victoria de la máquina evitada" crlf)
     (retract ?f)
 )
 ;;;;; ***************************************************** ;;;;;
@@ -447,8 +456,6 @@
 ; No vamos a incluir una regla de jugada aleatoria porque ya viene incluida
 ; Aunque se usara como la jugada que haces porque "no sabes que hacer"
 
-; Reglas muy prioritarias a la hora de ganar/defenderse
-
 ; Enlaces de referencia
 ; http://clipsrules.sourceforge.net/documentation/v624/bpg.htm#:~:text=5.4.6-,Exists%20Conditional%20Element,-The%20exists%20conditional
 ;
@@ -457,108 +464,93 @@
 ;
 ;
 
+; Reglas muy prioritarias a la hora de ganar/defenderse
 (defrule ir_a_ganar
-    (salience 8000)
+    (declare (salience 8000))
     ?y <- (Turno M)
     ?x <- (Ganaria M ?c)
-    (Tablero Juego ?f ?c _)
-    ?z <- (Caeria ?f ?c)
     (not (exists (Jugar ?)))
     =>
     (assert (Jugar ?c) (criterio))
-    (retract ?x ?y ?z)
-    (printout t "Tengo la oprtunidad de ganar" crlf)
+    (retract ?x ?y)
+    (printout t "Tengo la oportunidad de ganar" crlf)
 )
+
 (defrule impedir_derrota
-    (salience 7999)
+    (declare (salience 7999))
     ?y <- (Turno M)
     ?x <- (Ganaria J ?c)
-    (Tablero Juego ?f ?c _)
-    ?z <- (Caeria ?f ?c)
     (not (exists (Jugar ?)))
     =>
     (assert (Jugar ?c) (criterio))
-    (retract ?x ?y ?z)
-    (printout t "El humano está a punto de ganar" crlf)
+    (retract ?x ?y)
+    (printout t "El humano esta a punto de ganar" crlf)
 )
 
 ; Si veo que hay dos fichas conectadas, intento conectar otra mas
 (defrule conectar_tres_extremo_sig
-    (salience 950)
+    (declare (salience 2000))
     ?y <- (Turno M)
-    (Conectado ?t & Juego|Analisis ?f ?c ?m & h|v|d1|d2 ?f1 ?c1 M) ; si hay dos fichas conectadas
+    (Tablero ?t & Juego|Analisis ?f ?c M)
+    (Conectado ?t ?f ?c ?m & h|v|d1|d2 ?f1 ?c1 M) ; si hay dos fichas conectadas
+    (Tablero ?t ?f1 ?c1 M)
     (Siguiente ?f1 ?c1 ?m ?f2 ?c2) ; y en la siguiente de la alineacion
-    ?x <- (Caeria ?f2 ?c2)
+    (Caeria ?f2 ?c2)
     (not (exists (Jugar ?)))
     =>
-    (retract ?x ?y)
+    (retract ?y)
     (assert (Jugar ?c2) (criterio)) ; pues juego
     (printout t "Voy a conectar tres para tener una posibilidad de conectar 4 mas tarde" crlf)
 )
 
 (defrule conectar_tres_extremo_ant
-    (salience 950)
+    (declare (salience 2001))
     ?y <- (Turno M)
-    (Conectado ?t & Juego|Analisis ?f ?c ?m & h|v|d1|d2 ?f1 ?c1 M) ; si hay dos fichas conectadas
-    (Anterior ?f ?c ?m ?f2 ?c2) ; y en la siguiente de la alineacion
-    ?x <- (Caeria ?f2 ?c2)
+    (Tablero ?t & Juego|Analisis ?f ?c M)
+    (Conectado ?t ?f ?c ?m & h|d1|d2 ?f1 ?c1 M) ; si hay dos fichas conectadas
+    (Tablero ?t ?f1 ?c1 M)
+    (Anterior ?f ?c ?m ?f2 ?c2) ; y en la anterior de la alineacion
+    (Tablero ?t ?f2 ?c2 _)
+    (Caeria ?f2 ?c2)
     (not (exists (Jugar ?)))
     =>
-    (retract ?x ?y)
+    (retract ?y)
     (assert (Jugar ?c2) (criterio)) ; pues juego
     (printout t "Voy a conectar tres para tener una posibilidad de conectar 4 mas tarde" crlf)
 )
 
 ; Tambien se pueden conectar tres separadas, salvo en vertical que no se puede
 (defrule conectar_tres_entre
-    (salience 1000)
+    (declare (salience 2002))
     ?y <- (Turno M)
-    (Tablero Juego ?f ?c M)
-    (Siguiente ?f ?c ?m & h|d1|d2 ?f1x ?f2x)
-    (Tablero Juego ?f1x ?c1x _)
-    (Siguiente ?f1x ?c1x ?m ?f2 ?c2)
+    (Tablero ?t & Juego|Analisis ?f ?c M) ; Dada una ficha del tablero f,c
+    (Siguiente ?f ?c ?m & h|d1|d2 ?f1x ?f2x) ; La inserto en f1x,c1x
+    (Caeria ?f1x ?c1x)
+    (Siguiente ?f1x ?c1x ?m ?f2 ?c2) ; La ficha siguiente a f1x,c1x tambien es de la maquina
     (Tablero ?f2 ?c2 M)
     (not (exists (Jugar ?)))
-    ?x <- (Caeria ?f1x ?c1x)
     =>
     (retract ?y)
-    (assert (Jugar ?c1x))
+    (assert (Jugar ?c1x) (criterio))
     (printout t "Voy a conectar tres para tener una posibilidad de conectar 4 mas tarde" crlf)
 )
 
-; Por si queremos conectar dos
-(defrule conectar_dos_sig
-    (salience 800)
-    ?y <- (Turno M)
-    (Tablero Juego ?f ?c M)
-    (Siguiente ?f ?c ?m & h|v|d1|d2 ?f1 ?c1)
-    (Tablero Juego ?f1 ?c1 _)
-    (not (exists (Jugar ?)))
-    ?x <- (Caeria ?f1 ?c1)
-    =>
-    (retract ?y)
-    (assert (Jugar ?c1))
-    (printout t "Voy a hacer conexiones de dos fichas" crlf)
-)
-
-(defrule conectar_dos_ant
-    (salience 800)
-    ?y <- (Turno M)
-    (Tablero Juego ?f ?c M)
-    (Anterior ?f ?c ?m & h|v|d1|d2 ?f1 ?c1)
-    (Tablero Juego ?f1 ?c1 _)
-    (not (exists (Jugar ?)))
-    ?x <- (Caeria ?f1 ?c1)
-    =>
-    (retract ?y ?x)
-    (assert (Jugar ?c1))
-    (printout t "Voy a hacer conexiones de dos fichas" crlf)
-)
-
 (defrule clips_juega_con_criterio
-    (declare (salience 9999))
+    (declare (salience 8501))
     ?f <- (Jugar ?c)
+    ?g <- (criterio)
     =>
+    (printout t "Por tanto, JUEGO en la columna " ?c crlf)
+    (retract ?f ?g)
+    (assert (Juega M ?c))
+)
+
+(defrule clips_juega_sin_criterio_prio
+    (declare (salience -1))
+    ?f <- (Jugar ?c)
+    (not (exists (criterio)))
+    =>
+    (printout t "Puedo poner la ficha donde quiera" crlf)
     (printout t "Por tanto, JUEGO en la columna " ?c crlf)
     (retract ?f)
     (assert (Juega M ?c))
