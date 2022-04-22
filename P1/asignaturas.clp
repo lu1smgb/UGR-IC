@@ -21,31 +21,36 @@
 )
 
 (deffacts AsignaturasPrimero
-    (Asignatura FP)     ; Fundamentos de Programacion
-    (Asignatura FS)     ; Fundamentos del Software
-    (Asignatura FFT)    ; Fundamentos Fisicos y Tecnologicos
-    (Asignatura CA)     ; Calculo
-    (Asignatura ALEM)   ; Algebra Lineal y Estructuras Matematicas
-    ;-------------------;-------------------------------------------
-    (Asignatura MP)     ; Metodologia de la Programacion
-    (Asignatura TOC)    ; Tecnologia y Organizacion de Computadores
-    (Asignatura LMD)    ; Logica y metodos discretos
-    (Asignatura IES)    ; Ingenieria, empresa y sociedad
-    (Asignatura ES)     ; Estadistica
+    ; Primer cuatrimestre ------------------------------------------
+    (Asignatura FP "Fundamentos de Programacion")
+    (Asignatura FS "Fundamentos del Software")
+    (Asignatura FFT "Fundamentos Fisicos y Tecnologicos")
+    (Asignatura CA "Calculo")
+    (Asignatura ALEM "Algebra Lineal y Estructuras Matematicas")
+    ; Segundo cuatrimestre -----------------------------------------
+    (Asignatura MP "Metodologia de la Programacion")
+    (Asignatura TOC "Tecnologia y Organizacion de Computadores")
+    (Asignatura LMD "Logica y Metodos Discretos")
+    (Asignatura IES "Ingenieria Empresa y Sociedad")
+    (Asignatura ES "Estadistica")
+    ;---------------------------------------------------------------
 )
 
 (deffacts AsignaturasSegundo
-    (Asignatura SO)     ; Sistemas Operativos
-    (Asignatura ED)     ; Estructuras de Datos
-    (Asignatura PDOO)   ; Programacion y Diseño Orientado a Objetos
-    (Asignatura SCD)    ; Sistemas Concurrentes y Distribuidos
-    (Asignatura EC)     ; Estructura de Computadores
-    ;-------------------;-------------------------------------------
-    (Asignatura AC)     ; Arquitectura de computadores
-    (Asignatura FBD)    ; Fundamentos de Bases de Datos
-    (Asignatura ALG)    ; Algoritmica
-    (Asignatura IA)     ; Inteligencia artificial
-    (Asignatura FIS)    ; Fundamentos de Ingenieria del Software
+    ; Primer cuatrimestre ------------------------------------------
+    (Asignatura SO "Sistemas Operativos")
+    (Asignatura ED "Estructuras de Datos")
+    (Asignatura PDOO "Programacion y Diseno Orientado a objetos")
+    (Asignatura SCD "Sistemas Concurrentes y Distribuidos")
+    (Asignatura EC "Estructura de Computadores")
+    ; Segundo cuatrimestre -----------------------------------------
+    (Asignatura AC "Arquitectura de Computadores")
+    (Asignatura FBD "Fundamentos de Bases de Datos")
+    (Asignatura ALG "Algoritmica")
+    (Asignatura IA "Inteligencia Artificial")
+    (Asignatura FIS "Fundamentos de Ingenieria del Software")
+    ;---------------------------------------------------------------
+)
 )
 
 ; TODO: Formular preguntas del programa
