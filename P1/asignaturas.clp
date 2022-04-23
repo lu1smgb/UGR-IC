@@ -16,12 +16,23 @@
 ; cursos de la carrera, de modo que podemos hacerle preguntas sobre
 ; esos cursos en concreto
 
+(deftemplate ValoracionRama
+    (slot rama)
+    (slot val)
+)
+
 (deffacts Ramas
-    (Rama Computacion_y_Sistemas_Inteligentes)
-    (Rama Ingenieria_del_Software)
-    (Rama Ingenieria_de_Computadores)
-    (Rama Sistemas_de_Informacion)
-    (Rama Tecnologias_de_la_Informacion)
+    (Rama "Computacion y Sistemas Inteligentes")
+    (Rama "Ingenieria del Software")
+    (Rama "Ingenieria de Computadores")
+    (Rama "Sistemas de Informacion")
+    (Rama "Tecnologias de la Informacion")
+    ;---------------------------------------------------------------
+    (ValoracionRama (rama CSI) (val 0))
+    (ValoracionRama (rama IS) (val 0))
+    (ValoracionRama (rama IC) (val 0))
+    (ValoracionRama (rama SI) (val 0))
+    (ValoracionRama (rama TI) (val 0)) 
 )
 
 (deffacts AsignaturasPrimero
@@ -56,7 +67,9 @@
     ;---------------------------------------------------------------
 )
 
-; PAG 16 del FAQ
+; PAG. 16 del FAQ
+; Para tener un contador que vaya incrementando
+; poco a poco
 (deftemplate num_pregunta (slot num))
 
 (deffacts Preguntas
@@ -66,7 +79,7 @@
     (Pregunta 4 "Te gusta lo relacionado con la inteligencia artificial?")
     (Pregunta 5 "Te gusta el mundo de la robotica?")
     (Pregunta 6 "Te gustan los videojuegos?")
-    (Pregunta 7 "Te gusta la informatica web?")
+    (Pregunta 7 "Te gusta la informatica tipo web?")
     (Pregunta 8 "Te gustan los sistemas informaticos?")
     (Pregunta 9 "Te gustan las redes y los servidores?")
     (Pregunta 10 "Te gustan las bases de datos?")
@@ -79,8 +92,8 @@
     ?y <- (num_pregunta (num ?n))
     =>
     (assert (Pregunta ?n (str-cat (str-cat "Te ha gustado la asignatura " ?a) "?")))
-    (retract ?x)
     (modify ?y (num (+ ?n 1)))
+    (retract ?x)
 )
 
 (defrule inicio
@@ -113,33 +126,261 @@
         (switch ?r
             (case "MUCHISIMO" then 5)
             (case "ME ENCANTA" then 5)
-            (case "5" then 5)
+            (case "MUCHO" then 5)
+            (case "BASTANTE" then 5)
             ;-------------------------------------
             (case "SI" then 4)
-            (case "MUCHO" then 4)
-            (case "BASTANTE" then 4)
             (case "ME GUSTA" then 4)
-            (case "4" then 4)
+            (case "SI ME GUSTA" then 4)
+            (case "POCO" then 4)
+            (case "UN POCO" then 4)
             ;------------------------------------
             (case "NO SE" then 3)
             (case "REGULAR" then 3)
             (case "MAS O MENOS" then 3)
             (case "NI IDEA" then 3)
-            (case "3" then 3)
             ;------------------------------------
             (case "NO" then 2)
-            (case "POCO" then 2)
-            (case "UN POCO" then 2)
-            (case "NO MUCHO" then 3)
-            (case "NO TANTO" then 3)
-            (case "2" then 2)
+            (case "NO ME GUSTA" then 2)
+            (case "NO MUCHO" then 2)
+            (case "NO TANTO" then 2)
+            (case "NO ME GUSTA MUCHO" then 2)
             ;------------------------------------
             (case "MUY POCO" then 1)
             (case "NADA" then 1)
-            (case "NO ME GUSTA" then 1)
+            (case "NO ME GUSTA NADA" then 1)
             (case "PARA NADA" then 1)
-            (case "1" then 1)
             (default 3)
         )
     ))
+)
+
+(defrule razonar_respuesta
+    ?x <- (Valoracion ?np ?v)
+    ?a <- (ValoracionRama (rama CSI) (val ?csi))
+    ?b <- (ValoracionRama (rama IS) (val ?is))
+    ?c <- (ValoracionRama (rama IC) (val ?ic))
+    ?d <- (ValoracionRama (rama SI) (val ?si))
+    ?e <- (ValoracionRama (rama TI) (val ?ti))
+    =>
+    (switch ?np
+        ; Un "case" por pregunta
+        ; Te gusta la programacion?
+        (case 1 then
+            ; ¿¿Cómo afecta la respuesta a la valoración de cada una de las ramas?? [0,1]
+            ;                                      |
+            ;                                      v
+            (modify ?a (val (+ ?csi (integer (* ?v 1)))))
+            (modify ?b (val (+ ?is (integer (* ?v 1)))))
+            (modify ?c (val (+ ?ic (integer (* ?v 0.2)))))
+            (modify ?d (val (+ ?si (integer (* ?v 0.4)))))
+            (modify ?e (val (+ ?ti (integer (* ?v 0.4)))))
+            ; Insertamos tambien consejos
+        )
+        ; Te gustan las matemáticas
+        (case 2 then
+            (modify ?a (val (+ ?csi (integer (* ?v 1)))))
+            (modify ?b (val (+ ?is (integer (* ?v 1)))))
+            (modify ?c (val (+ ?ic (integer (* ?v 0.2)))))
+            (modify ?d (val (+ ?si (integer (* ?v 0.4)))))
+            (modify ?e (val (+ ?ti (integer (* ?v 0.4)))))
+        )
+        (case 3 then
+            (modify ?a (val (+ ?csi (integer (* ?v 1)))))
+            (modify ?b (val (+ ?is (integer (* ?v 1)))))
+            (modify ?c (val (+ ?ic (integer (* ?v 0.2)))))
+            (modify ?d (val (+ ?si (integer (* ?v 0.4)))))
+            (modify ?e (val (+ ?ti (integer (* ?v 0.4)))))
+        )
+        (case 4 then
+            (modify ?a (val (+ ?csi (integer (* ?v 1)))))
+            (modify ?b (val (+ ?is (integer (* ?v 1)))))
+            (modify ?c (val (+ ?ic (integer (* ?v 0.2)))))
+            (modify ?d (val (+ ?si (integer (* ?v 0.4)))))
+            (modify ?e (val (+ ?ti (integer (* ?v 0.4)))))
+        )
+        (case 5 then
+            (modify ?a (val (+ ?csi (integer (* ?v 1)))))
+            (modify ?b (val (+ ?is (integer (* ?v 1)))))
+            (modify ?c (val (+ ?ic (integer (* ?v 0.2)))))
+            (modify ?d (val (+ ?si (integer (* ?v 0.4)))))
+            (modify ?e (val (+ ?ti (integer (* ?v 0.4)))))
+        )
+        (case 6 then
+            (modify ?a (val (+ ?csi (integer (* ?v 1)))))
+            (modify ?b (val (+ ?is (integer (* ?v 1)))))
+            (modify ?c (val (+ ?ic (integer (* ?v 0.2)))))
+            (modify ?d (val (+ ?si (integer (* ?v 0.4)))))
+            (modify ?e (val (+ ?ti (integer (* ?v 0.4)))))
+        )
+        (case 7 then
+            (modify ?a (val (+ ?csi (integer (* ?v 1)))))
+            (modify ?b (val (+ ?is (integer (* ?v 1)))))
+            (modify ?c (val (+ ?ic (integer (* ?v 0.2)))))
+            (modify ?d (val (+ ?si (integer (* ?v 0.4)))))
+            (modify ?e (val (+ ?ti (integer (* ?v 0.4)))))
+        )
+        (case 8 then
+            (modify ?a (val (+ ?csi (integer (* ?v 1)))))
+            (modify ?b (val (+ ?is (integer (* ?v 1)))))
+            (modify ?c (val (+ ?ic (integer (* ?v 0.2)))))
+            (modify ?d (val (+ ?si (integer (* ?v 0.4)))))
+            (modify ?e (val (+ ?ti (integer (* ?v 0.4)))))
+        )
+        (case 9 then
+            (modify ?a (val (+ ?csi (integer (* ?v 1)))))
+            (modify ?b (val (+ ?is (integer (* ?v 1)))))
+            (modify ?c (val (+ ?ic (integer (* ?v 0.2)))))
+            (modify ?d (val (+ ?si (integer (* ?v 0.4)))))
+            (modify ?e (val (+ ?ti (integer (* ?v 0.4)))))
+        )
+        (case 10 then
+            (modify ?a (val (+ ?csi (integer (* ?v 1)))))
+            (modify ?b (val (+ ?is (integer (* ?v 1)))))
+            (modify ?c (val (+ ?ic (integer (* ?v 0.2)))))
+            (modify ?d (val (+ ?si (integer (* ?v 0.4)))))
+            (modify ?e (val (+ ?ti (integer (* ?v 0.4)))))
+        )
+        (case 11 then
+            (modify ?a (val (+ ?csi (integer (* ?v 1)))))
+            (modify ?b (val (+ ?is (integer (* ?v 1)))))
+            (modify ?c (val (+ ?ic (integer (* ?v 0.2)))))
+            (modify ?d (val (+ ?si (integer (* ?v 0.4)))))
+            (modify ?e (val (+ ?ti (integer (* ?v 0.4)))))
+        )
+        (case 12 then
+            (modify ?a (val (+ ?csi (integer (* ?v 1)))))
+            (modify ?b (val (+ ?is (integer (* ?v 1)))))
+            (modify ?c (val (+ ?ic (integer (* ?v 0.2)))))
+            (modify ?d (val (+ ?si (integer (* ?v 0.4)))))
+            (modify ?e (val (+ ?ti (integer (* ?v 0.4)))))
+        )
+        (case 13 then
+            (modify ?a (val (+ ?csi (integer (* ?v 1)))))
+            (modify ?b (val (+ ?is (integer (* ?v 1)))))
+            (modify ?c (val (+ ?ic (integer (* ?v 0.2)))))
+            (modify ?d (val (+ ?si (integer (* ?v 0.4)))))
+            (modify ?e (val (+ ?ti (integer (* ?v 0.4)))))
+        )
+        (case 14 then
+            (modify ?a (val (+ ?csi (integer (* ?v 1)))))
+            (modify ?b (val (+ ?is (integer (* ?v 1)))))
+            (modify ?c (val (+ ?ic (integer (* ?v 0.2)))))
+            (modify ?d (val (+ ?si (integer (* ?v 0.4)))))
+            (modify ?e (val (+ ?ti (integer (* ?v 0.4)))))
+        )
+        (case 15 then
+            (modify ?a (val (+ ?csi (integer (* ?v 1)))))
+            (modify ?b (val (+ ?is (integer (* ?v 1)))))
+            (modify ?c (val (+ ?ic (integer (* ?v 0.2)))))
+            (modify ?d (val (+ ?si (integer (* ?v 0.4)))))
+            (modify ?e (val (+ ?ti (integer (* ?v 0.4)))))
+        )
+        (case 16 then
+            (modify ?a (val (+ ?csi (integer (* ?v 1)))))
+            (modify ?b (val (+ ?is (integer (* ?v 1)))))
+            (modify ?c (val (+ ?ic (integer (* ?v 0.2)))))
+            (modify ?d (val (+ ?si (integer (* ?v 0.4)))))
+            (modify ?e (val (+ ?ti (integer (* ?v 0.4)))))
+        )
+        (case 17 then
+            (modify ?a (val (+ ?csi (integer (* ?v 1)))))
+            (modify ?b (val (+ ?is (integer (* ?v 1)))))
+            (modify ?c (val (+ ?ic (integer (* ?v 0.2)))))
+            (modify ?d (val (+ ?si (integer (* ?v 0.4)))))
+            (modify ?e (val (+ ?ti (integer (* ?v 0.4)))))
+        )
+        (case 18 then
+            (modify ?a (val (+ ?csi (integer (* ?v 1)))))
+            (modify ?b (val (+ ?is (integer (* ?v 1)))))
+            (modify ?c (val (+ ?ic (integer (* ?v 0.2)))))
+            (modify ?d (val (+ ?si (integer (* ?v 0.4)))))
+            (modify ?e (val (+ ?ti (integer (* ?v 0.4)))))
+        )
+        (case 19 then
+            (modify ?a (val (+ ?csi (integer (* ?v 1)))))
+            (modify ?b (val (+ ?is (integer (* ?v 1)))))
+            (modify ?c (val (+ ?ic (integer (* ?v 0.2)))))
+            (modify ?d (val (+ ?si (integer (* ?v 0.4)))))
+            (modify ?e (val (+ ?ti (integer (* ?v 0.4)))))
+        )
+        (case 20 then
+            (modify ?a (val (+ ?csi (integer (* ?v 1)))))
+            (modify ?b (val (+ ?is (integer (* ?v 1)))))
+            (modify ?c (val (+ ?ic (integer (* ?v 0.2)))))
+            (modify ?d (val (+ ?si (integer (* ?v 0.4)))))
+            (modify ?e (val (+ ?ti (integer (* ?v 0.4)))))
+        )
+        (case 21 then
+            (modify ?a (val (+ ?csi (integer (* ?v 1)))))
+            (modify ?b (val (+ ?is (integer (* ?v 1)))))
+            (modify ?c (val (+ ?ic (integer (* ?v 0.2)))))
+            (modify ?d (val (+ ?si (integer (* ?v 0.4)))))
+            (modify ?e (val (+ ?ti (integer (* ?v 0.4)))))
+        )
+        (case 22 then
+            (modify ?a (val (+ ?csi (integer (* ?v 1)))))
+            (modify ?b (val (+ ?is (integer (* ?v 1)))))
+            (modify ?c (val (+ ?ic (integer (* ?v 0.2)))))
+            (modify ?d (val (+ ?si (integer (* ?v 0.4)))))
+            (modify ?e (val (+ ?ti (integer (* ?v 0.4)))))
+        )
+        (case 23 then
+            (modify ?a (val (+ ?csi (integer (* ?v 1)))))
+            (modify ?b (val (+ ?is (integer (* ?v 1)))))
+            (modify ?c (val (+ ?ic (integer (* ?v 0.2)))))
+            (modify ?d (val (+ ?si (integer (* ?v 0.4)))))
+            (modify ?e (val (+ ?ti (integer (* ?v 0.4)))))
+        )
+        (case 24 then
+            (modify ?a (val (+ ?csi (integer (* ?v 1)))))
+            (modify ?b (val (+ ?is (integer (* ?v 1)))))
+            (modify ?c (val (+ ?ic (integer (* ?v 0.2)))))
+            (modify ?d (val (+ ?si (integer (* ?v 0.4)))))
+            (modify ?e (val (+ ?ti (integer (* ?v 0.4)))))
+        )
+        (case 25 then
+            (modify ?a (val (+ ?csi (integer (* ?v 1)))))
+            (modify ?b (val (+ ?is (integer (* ?v 1)))))
+            (modify ?c (val (+ ?ic (integer (* ?v 0.2)))))
+            (modify ?d (val (+ ?si (integer (* ?v 0.4)))))
+            (modify ?e (val (+ ?ti (integer (* ?v 0.4)))))
+        )
+        (case 26 then
+            (modify ?a (val (+ ?csi (integer (* ?v 1)))))
+            (modify ?b (val (+ ?is (integer (* ?v 1)))))
+            (modify ?c (val (+ ?ic (integer (* ?v 0.2)))))
+            (modify ?d (val (+ ?si (integer (* ?v 0.4)))))
+            (modify ?e (val (+ ?ti (integer (* ?v 0.4)))))
+        )
+        (case 27 then
+            (modify ?a (val (+ ?csi (integer (* ?v 1)))))
+            (modify ?b (val (+ ?is (integer (* ?v 1)))))
+            (modify ?c (val (+ ?ic (integer (* ?v 0.2)))))
+            (modify ?d (val (+ ?si (integer (* ?v 0.4)))))
+            (modify ?e (val (+ ?ti (integer (* ?v 0.4)))))
+        )
+        (case 28 then
+            (modify ?a (val (+ ?csi (integer (* ?v 1)))))
+            (modify ?b (val (+ ?is (integer (* ?v 1)))))
+            (modify ?c (val (+ ?ic (integer (* ?v 0.2)))))
+            (modify ?d (val (+ ?si (integer (* ?v 0.4)))))
+            (modify ?e (val (+ ?ti (integer (* ?v 0.4)))))
+        )
+        (case 29 then
+            (modify ?a (val (+ ?csi (integer (* ?v 1)))))
+            (modify ?b (val (+ ?is (integer (* ?v 1)))))
+            (modify ?c (val (+ ?ic (integer (* ?v 0.2)))))
+            (modify ?d (val (+ ?si (integer (* ?v 0.4)))))
+            (modify ?e (val (+ ?ti (integer (* ?v 0.4)))))
+        )
+        (case 30 then
+            (modify ?a (val (+ ?csi (integer (* ?v 1)))))
+            (modify ?b (val (+ ?is (integer (* ?v 1)))))
+            (modify ?c (val (+ ?ic (integer (* ?v 0.2)))))
+            (modify ?d (val (+ ?si (integer (* ?v 0.4)))))
+            (modify ?e (val (+ ?ti (integer (* ?v 0.4)))))
+        )
+    )
+    (retract ?x) ; <- importante
 )
