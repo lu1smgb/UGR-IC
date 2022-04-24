@@ -140,8 +140,6 @@
 (defrule terminar2
     (declare (salience 3000))
     (ValoracionRama (rama ?r) (val ?v))
-    ; https://stackoverflow.com/questions/20275384/find-maximum-among-facts-in-clips
-    ; No existe otra valoracion cuyo valor sea mayor o igual
     (and (not (exists (fin ?))) (not (exists (Pregunta ? ?))))
     =>
     (printout t crlf "Te recomiendo la rama de " ?r crlf)
