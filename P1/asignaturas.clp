@@ -81,6 +81,7 @@
     (Pregunta 9 "Te gustan las redes y los servidores?")
     (Pregunta 10 "Te gustan las bases de datos?")
     (num_pregunta (num 11))
+    (trigger)
 )
 
 (defrule PreguntasAsignaturas
@@ -93,6 +94,16 @@
     (retract ?x)
 )
 
+(defrule comenzar_desde_1
+    (declare (salience 9997))
+    (not (exists (Asignatura ? ?)))
+    ?y <- (trigger)
+    ?x <- (num_pregunta (num ?n))
+    =>
+    (modify ?x (num 1))
+    (retract ?y)
+)
+
 (defrule inicio
     (declare (salience 9999))
     =>
@@ -103,21 +114,37 @@
 )
 
 (defrule preguntar
+    ?y <- (num_pregunta (num ?np))
     ?x <- (Pregunta ?np ?p)
     (ValoracionRama (rama ?r) (val ?v))
     (not (exists (fin ?)))
     =>
     (printout t ?p crlf)
+    (modify ?y (num (+ ?np 1)))
     (assert (Respuesta ?np (upcase (readline))))
     (retract ?x)
 )
 
 (defrule terminar
-    (declare (salience 1000))
+    (declare (salience 3000))
     (ValoracionRama (rama ?r) (val ?v))
-    (test (or (> ?v 25) (= ?v 25)))
+    ; https://stackoverflow.com/questions/20275384/find-maximum-among-facts-in-clips
+    ; No existe otra valoracion cuyo valor sea mayor o igual
+    (test (> ?v 20))
+    (and (not (exists (fin ?))) (not (ValoracionRama (rama ?r2) (val ?v2&:(> ?v2 ?v)))))
     =>
-    (printout t crlf "Te recomiendo la rama de " ?r " porque" crlf)
+    (printout t crlf "Te recomiendo la rama de " ?r crlf)
+    (assert (fin ?r))
+)
+
+(defrule terminar2
+    (declare (salience 3000))
+    (ValoracionRama (rama ?r) (val ?v))
+    ; https://stackoverflow.com/questions/20275384/find-maximum-among-facts-in-clips
+    ; No existe otra valoracion cuyo valor sea mayor o igual
+    (and (not (exists (fin ?))) (not (exists (Pregunta ? ?))))
+    =>
+    (printout t crlf "Te recomiendo la rama de " ?r crlf)
     (assert (fin ?r))
 )
 
@@ -139,7 +166,7 @@
 (defrule valorar_respuesta
     ?x <- (Respuesta ?np ?r)
     =>
-    (assert (Valoracion ?np 
+    (bind ?v 
         (switch ?r
             (case "MUCHISIMO" then 5)
             (case "ME ENCANTA" then 5)
@@ -156,12 +183,10 @@
             (case "SI ME GUSTO" then 4)
             (case "ME GUSTA UN POCO" then 4)
             (case "ME GUSTO UN POCO" then 4)
-            ;------------------------------------
-            (case "NO SE" then 3)
+            ;-------------------------------------
             (case "REGULAR" then 3)
             (case "MAS O MENOS" then 3)
-            (case "NI IDEA" then 3)
-            ;------------------------------------
+            ;-------------------------------------
             (case "NO" then 2)
             (case "NO ME GUSTA" then 2)
             (case "NO ME GUSTO" then 2)
@@ -171,7 +196,7 @@
             (case "NO ME GUSTO MUCHO" then 2)
             (case "POCO" then 2)
             (case "UN POCO" then 2)
-            ;------------------------------------
+            ;-------------------------------------
             (case "MUY POCO" then 1)
             (case "NADA" then 1)
             (case "NO ME GUSTA NADA" then 1)
@@ -180,9 +205,14 @@
             (case "EN ABSOLUTO" then 1)
             (case "LO ODIO" then 1)
             (case "LA ODIO" then 1)
-            (default 3)
+            ;-------------------------------------
+            (case "NO SE" then 0)
+            (case "NI IDEA" then 0)
+            (default 0)
         )
-    ))
+    )
+    (assert (Valoracion ?np ?v))
+    (retract ?x)
 )
 
 (defrule razonar_respuesta
@@ -200,11 +230,11 @@
             ; ¿¿Cómo afecta la respuesta a la valoración de cada una de las ramas?? [0,1]
             ;                                      |
             ;                                      v
-            (modify ?a (val (+ ?csi (integer (* ?v 1)))))
-            (modify ?b (val (+ ?is (integer (* ?v 1)))))
+            (modify ?a (val (+ ?csi (integer (* ?v 0.6)))))
+            (modify ?b (val (+ ?is (integer (* ?v 0.6)))))
             (modify ?c (val (+ ?ic (integer (* ?v 0.2)))))
-            (modify ?d (val (+ ?si (integer (* ?v 0.4)))))
-            (modify ?e (val (+ ?ti (integer (* ?v 0.4)))))
+            (modify ?d (val (+ ?si (integer (* ?v 0.2)))))
+            (modify ?e (val (+ ?ti (integer (* ?v 0.2)))))
             ; Insertamos tambien consejos
             (if (> ?v 3) then
                 (bind ?motivo1 "Te gusta programar")
@@ -216,11 +246,11 @@
         )
         ; Te gustan las matemáticas?
         (case 2 then
-            (modify ?a (val (+ ?csi (integer (* ?v 1)))))
-            (modify ?b (val (+ ?is (integer (* ?v 0.8)))))
-            (modify ?c (val (+ ?ic (integer (* ?v 0.6)))))
-            (modify ?d (val (+ ?si (integer (* ?v 0.2)))))
-            (modify ?e (val (+ ?ti (integer (* ?v 0.2)))))
+            (modify ?a (val (+ ?csi (integer (* ?v 0.6)))))
+            (modify ?b (val (+ ?is (integer (* ?v 0.2)))))
+            (modify ?c (val (+ ?ic (integer (* ?v 0.1)))))
+            (modify ?d (val (+ ?si (integer (* ?v 0.1)))))
+            (modify ?e (val (+ ?ti (integer (* ?v 0.1)))))
             (if (> ?v 3) then
                 (bind ?motivo1 "Te gustan las matematicas")
                 (assert
@@ -231,11 +261,11 @@
         )
         ; Se te dan bien las matematicas?
         (case 3 then
-            (modify ?a (val (+ ?csi (integer (* ?v 1)))))
-            (modify ?b (val (+ ?is (integer (* ?v 0.4)))))
-            (modify ?c (val (+ ?ic (integer (* ?v 0.2)))))
-            (modify ?d (val (+ ?si (integer (* ?v 0.2)))))
-            (modify ?e (val (+ ?ti (integer (* ?v 0.2)))))
+            (modify ?a (val (+ ?csi (integer (* ?v 0.6)))))
+            (modify ?b (val (+ ?is (integer (* ?v 0.2)))))
+            (modify ?c (val (+ ?ic (integer (* ?v 0.1)))))
+            (modify ?d (val (+ ?si (integer (* ?v 0.1)))))
+            (modify ?e (val (+ ?ti (integer (* ?v 0.1)))))
             (if (> ?v 3) then
                 (bind ?motivo1 "Se te dan bien las matematicas")
                 (assert
@@ -247,9 +277,9 @@
         (case 4 then
             (modify ?a (val (+ ?csi (integer (* ?v 1)))))
             (modify ?b (val (+ ?is (integer (* ?v 0.2)))))
-            (modify ?c (val (+ ?ic (integer (* ?v 0.2)))))
-            (modify ?d (val (+ ?si (integer (* ?v 0.2)))))
-            (modify ?e (val (+ ?ti (integer (* ?v 0.2)))))
+            (modify ?c (val (+ ?ic (integer (* ?v 0.1)))))
+            (modify ?d (val (+ ?si (integer (* ?v 0.1)))))
+            (modify ?e (val (+ ?ti (integer (* ?v 0.1)))))
             (if (> ?v 3) then
                 (bind ?motivo1 "Te gusta la Inteligencia Artificial")
                 (assert
@@ -259,11 +289,11 @@
         )
         ; Te gusta el mundo de la robotica?
         (case 5 then
-            (modify ?a (val (+ ?csi (integer (* ?v 0.8)))))
-            (modify ?b (val (+ ?is (integer (* ?v 0.4)))))
+            (modify ?a (val (+ ?csi (integer (* ?v 1)))))
+            (modify ?b (val (+ ?is (integer (* ?v 0.2)))))
             (modify ?c (val (+ ?ic (integer (* ?v 1)))))
-            (modify ?d (val (+ ?si (integer (* ?v 0.4)))))
-            (modify ?e (val (+ ?ti (integer (* ?v 0.2)))))
+            (modify ?d (val (+ ?si (integer (* ?v 0.2)))))
+            (modify ?e (val (+ ?ti (integer (* ?v 0.1)))))
             (if (> ?v 3) then
                 (bind ?motivo1 "Te gusta la robotica")
                 (assert
@@ -276,9 +306,9 @@
         (case 6 then
             (modify ?a (val (+ ?csi (integer (* ?v 0.6)))))
             (modify ?b (val (+ ?is (integer (* ?v 1)))))
-            (modify ?c (val (+ ?ic (integer (* ?v 0.2)))))
-            (modify ?d (val (+ ?si (integer (* ?v 0.2)))))
-            (modify ?e (val (+ ?ti (integer (* ?v 0.2)))))
+            (modify ?c (val (+ ?ic (integer (* ?v 0.1)))))
+            (modify ?d (val (+ ?si (integer (* ?v 0.1)))))
+            (modify ?e (val (+ ?ti (integer (* ?v 0.1)))))
             (if (> ?v 3) then
                 (bind ?motivo1 "Te gustan los videojuegos")
                 (assert
@@ -289,10 +319,10 @@
         )
         ; Te gusta la informatica tipo web?
         (case 7 then
-            (modify ?a (val (+ ?csi (integer (* ?v 0.2)))))
+            (modify ?a (val (+ ?csi (integer (* ?v 0.1)))))
             (modify ?b (val (+ ?is (integer (* ?v 0.8)))))
-            (modify ?c (val (+ ?ic (integer (* ?v 0.2)))))
-            (modify ?d (val (+ ?si (integer (* ?v 1)))))
+            (modify ?c (val (+ ?ic (integer (* ?v 0.1)))))
+            (modify ?d (val (+ ?si (integer (* ?v 0.8)))))
             (modify ?e (val (+ ?ti (integer (* ?v 0.8)))))
             (if (> ?v 3) then
                 (bind ?motivo1 "Te gusta la informatica web")
@@ -304,7 +334,7 @@
         )
         ; Te gustan los sistemas informaticos?
         (case 8 then
-            (modify ?a (val (+ ?csi (integer (* ?v 0.2)))))
+            (modify ?a (val (+ ?csi (integer (* ?v 0.1)))))
             (modify ?b (val (+ ?is (integer (* ?v 0.2)))))
             (modify ?c (val (+ ?ic (integer (* ?v 0.2)))))
             (modify ?d (val (+ ?si (integer (* ?v 1)))))
@@ -324,7 +354,7 @@
             (modify ?d (val (+ ?si (integer (* ?v 1)))))
             (modify ?e (val (+ ?ti (integer (* ?v 1)))))
             (if (> ?v 3) then
-                (bind ?motivo1 "Te gusta las redes, servidores, etc.")
+                (bind ?motivo1 "Te gustan las redes, servidores, etc.")
                 (assert
                     (Consejo "Sistemas de Informacion" ?motivo1)
                     (Consejo "Tecnologias de la Informacion" ?motivo1)
@@ -334,8 +364,8 @@
         ; Te gustan las bases de datos?
         (case 10 then
             (modify ?a (val (+ ?csi (integer (* ?v 0.2)))))
-            (modify ?b (val (+ ?is (integer (* ?v 0.2)))))
-            (modify ?c (val (+ ?ic (integer (* ?v 0.2)))))
+            (modify ?b (val (+ ?is (integer (* ?v 0.4)))))
+            (modify ?c (val (+ ?ic (integer (* ?v 0.1)))))
             (modify ?d (val (+ ?si (integer (* ?v 1)))))
             (modify ?e (val (+ ?ti (integer (* ?v 1)))))
             (if (> ?v 3) then
@@ -348,32 +378,30 @@
         )
         ; Fundamentos de Programacion
         (case 11 then
-            (modify ?a (val (+ ?csi (integer (* ?v 1)))))
-            (modify ?b (val (+ ?is (integer (* ?v 1)))))
-            (modify ?c (val (+ ?ic (integer (* ?v 0.8)))))
-            (modify ?d (val (+ ?si (integer (* ?v 0.8)))))
-            (modify ?e (val (+ ?ti (integer (* ?v 0.8)))))
+            (modify ?a (val (+ ?csi (integer (* ?v 0.6)))))
+            (modify ?b (val (+ ?is (integer (* ?v 0.6)))))
+            (modify ?c (val (+ ?ic (integer (* ?v 0.4)))))
+            (modify ?d (val (+ ?si (integer (* ?v 0.4)))))
+            (modify ?e (val (+ ?ti (integer (* ?v 0.4)))))
             (if (> ?v 3) then
-                (bind ?motivo1 "Te gusto Fundamentos de Programacion")
+                (bind ?motivo1 "Te gusto la asignatura de Fundamentos de Programacion")
                 (assert
                     (Consejo "Computacion y Sistemas Inteligentes" ?motivo1)
                     (Consejo "Ingenieria del Software" ?motivo1)
-                    (Consejo "Sistemas de Informacion" ?motivo1)
                 )
             )
         )
         ; Fundamentos del Software
         (case 12 then
             (modify ?a (val (+ ?csi (integer (* ?v 0.2)))))
-            (modify ?b (val (+ ?is (integer (* ?v 1)))))
+            (modify ?b (val (+ ?is (integer (* ?v 0.4)))))
             (modify ?c (val (+ ?ic (integer (* ?v 0.8)))))
-            (modify ?d (val (+ ?si (integer (* ?v 0.8)))))
-            (modify ?e (val (+ ?ti (integer (* ?v 0.8)))))
+            (modify ?d (val (+ ?si (integer (* ?v 1)))))
+            (modify ?e (val (+ ?ti (integer (* ?v 1)))))
             (if (> ?v 3) then
-                (bind ?motivo1 "Te gusto Fundamentos del Software")
+                (bind ?motivo1 "Te gusto la asignatura de Fundamentos del Software")
                 (assert
-                    (Consejo "Computacion y Sistemas Inteligentes" ?motivo1)
-                    (Consejo "Ingenieria del Software" ?motivo1)
+                    (Consejo "Ingenieria de Computadores" ?motivo1)
                     (Consejo "Sistemas de Informacion" ?motivo1)
                     (Consejo "Tecnologias de la Informacion" ?motivo1)
                 )
@@ -381,13 +409,13 @@
         )
         ; Fundamentos Fisicos y Tecnologicos
         (case 13 then
-            (modify ?a (val (+ ?csi (integer (* ?v 0.2)))))
-            (modify ?b (val (+ ?is (integer (* ?v 0.2)))))
+            (modify ?a (val (+ ?csi (integer (* ?v 0.1)))))
+            (modify ?b (val (+ ?is (integer (* ?v 0.1)))))
             (modify ?c (val (+ ?ic (integer (* ?v 1)))))
-            (modify ?d (val (+ ?si (integer (* ?v 0.2)))))
-            (modify ?e (val (+ ?ti (integer (* ?v 0.2)))))
+            (modify ?d (val (+ ?si (integer (* ?v 0.1)))))
+            (modify ?e (val (+ ?ti (integer (* ?v 0.1)))))
             (if (> ?v 3) then
-                (bind ?motivo1 "Te gusto Fundamentos del Software")
+                (bind ?motivo1 "Te gusto la asignatura de Fundamentos Fisicos y Tecnologicos")
                 (assert
                     (Consejo "Ingenieria del Computadores" ?motivo1)
                 )
@@ -395,13 +423,13 @@
         )
         ; Calculo
         (case 14 then
-            (modify ?a (val (+ ?csi (integer (* ?v 1)))))
-            (modify ?b (val (+ ?is (integer (* ?v 0.2)))))
-            (modify ?c (val (+ ?ic (integer (* ?v 0.2)))))
-            (modify ?d (val (+ ?si (integer (* ?v 0.2)))))
-            (modify ?e (val (+ ?ti (integer (* ?v 0.2)))))
+            (modify ?a (val (+ ?csi (integer (* ?v 0.6)))))
+            (modify ?b (val (+ ?is (integer (* ?v 0.1)))))
+            (modify ?c (val (+ ?ic (integer (* ?v 0.1)))))
+            (modify ?d (val (+ ?si (integer (* ?v 0.1)))))
+            (modify ?e (val (+ ?ti (integer (* ?v 0.1)))))
             (if (> ?v 3) then
-                (bind ?motivo1 "Te gusto Calculo")
+                (bind ?motivo1 "Te gusto la asignatura de Calculo")
                 (assert
                     (Consejo "Computacion y Sistemas Inteligentes" ?motivo1)
                 )
@@ -409,13 +437,13 @@
         )
         ; Algebra
         (case 15 then
-            (modify ?a (val (+ ?csi (integer (* ?v 1)))))
-            (modify ?b (val (+ ?is (integer (* ?v 0.2)))))
-            (modify ?c (val (+ ?ic (integer (* ?v 0.2)))))
-            (modify ?d (val (+ ?si (integer (* ?v 0.2)))))
-            (modify ?e (val (+ ?ti (integer (* ?v 0.2)))))
+            (modify ?a (val (+ ?csi (integer (* ?v 0.6)))))
+            (modify ?b (val (+ ?is (integer (* ?v 0.1)))))
+            (modify ?c (val (+ ?ic (integer (* ?v 0.1)))))
+            (modify ?d (val (+ ?si (integer (* ?v 0.1)))))
+            (modify ?e (val (+ ?ti (integer (* ?v 0.1)))))
             (if (> ?v 3) then
-                (bind ?motivo1 "Te gusto Algebra")
+                (bind ?motivo1 "Te gusto la asignatura de Algebra")
                 (assert
                     (Consejo "Computacion y Sistemas Inteligentes" ?motivo1)
                 )
@@ -423,13 +451,13 @@
         )
         ; Metodologia de la Programacion
         (case 16 then
-            (modify ?a (val (+ ?csi (integer (* ?v 1)))))
-            (modify ?b (val (+ ?is (integer (* ?v 1)))))
-            (modify ?c (val (+ ?ic (integer (* ?v 0.8)))))
-            (modify ?d (val (+ ?si (integer (* ?v 0.8)))))
-            (modify ?e (val (+ ?ti (integer (* ?v 0.8)))))
+            (modify ?a (val (+ ?csi (integer (* ?v 0.6)))))
+            (modify ?b (val (+ ?is (integer (* ?v 0.6)))))
+            (modify ?c (val (+ ?ic (integer (* ?v 0.4)))))
+            (modify ?d (val (+ ?si (integer (* ?v 0.4)))))
+            (modify ?e (val (+ ?ti (integer (* ?v 0.4)))))
             (if (> ?v 3) then
-                (bind ?motivo1 "Te gusto Algebra")
+                (bind ?motivo1 "Te gusto la asignatura de Metodologia de la Programacion")
                 (assert
                     (Consejo "Computacion y Sistemas Inteligentes" ?motivo1)
                     (Consejo "Ingenieria del Software" ?motivo1)
@@ -439,27 +467,27 @@
         )
         ; Tecnologia y Organizacion de Computadores
         (case 17 then
-            (modify ?a (val (+ ?csi (integer (* ?v 0.2)))))
-            (modify ?b (val (+ ?is (integer (* ?v 0.2)))))
+            (modify ?a (val (+ ?csi (integer (* ?v 0.1)))))
+            (modify ?b (val (+ ?is (integer (* ?v 0.1)))))
             (modify ?c (val (+ ?ic (integer (* ?v 1)))))
-            (modify ?d (val (+ ?si (integer (* ?v 0.2)))))
-            (modify ?e (val (+ ?ti (integer (* ?v 0.2)))))
+            (modify ?d (val (+ ?si (integer (* ?v 0.1)))))
+            (modify ?e (val (+ ?ti (integer (* ?v 0.1)))))
             (if (> ?v 3) then
-                (bind ?motivo1 "Te gusto Tecnologia y Organizacion de Computadores")
+                (bind ?motivo1 "Te gusto la asignatura de Tecnologia y Organizacion de Computadores")
                 (assert
-                    (Consejo "Ingenieria del Computadores" ?motivo1)
+                    (Consejo "Ingenieria de Computadores" ?motivo1)
                 )
             )
         )
         ; Logica y Metodos Discretos
         (case 18 then
-            (modify ?a (val (+ ?csi (integer (* ?v 1)))))
-            (modify ?b (val (+ ?is (integer (* ?v 0.2)))))
+            (modify ?a (val (+ ?csi (integer (* ?v 0.6)))))
+            (modify ?b (val (+ ?is (integer (* ?v 0.1)))))
             (modify ?c (val (+ ?ic (integer (* ?v 0.2)))))
-            (modify ?d (val (+ ?si (integer (* ?v 0.2)))))
-            (modify ?e (val (+ ?ti (integer (* ?v 0.2)))))
+            (modify ?d (val (+ ?si (integer (* ?v 0.1)))))
+            (modify ?e (val (+ ?ti (integer (* ?v 0.1)))))
             (if (> ?v 3) then
-                (bind ?motivo1 "Te gusto Logica y Metodos Discretos")
+                (bind ?motivo1 "Te gusto la asignatura de Logica y Metodos Discretos")
                 (assert
                     (Consejo "Computacion y Sistemas Inteligentes" ?motivo1)
                 )
@@ -467,13 +495,13 @@
         )
         ; Ingenieria, Empresa y Sociedad
         (case 19 then
-            (modify ?a (val (+ ?csi (integer (* ?v 1)))))
-            (modify ?b (val (+ ?is (integer (* ?v 1)))))
-            (modify ?c (val (+ ?ic (integer (* ?v 1)))))
-            (modify ?d (val (+ ?si (integer (* ?v 1)))))
-            (modify ?e (val (+ ?ti (integer (* ?v 1)))))
+            (modify ?a (val (+ ?csi (integer (* ?v 0.1)))))
+            (modify ?b (val (+ ?is (integer (* ?v 0.6)))))
+            (modify ?c (val (+ ?ic (integer (* ?v 0.1)))))
+            (modify ?d (val (+ ?si (integer (* ?v 0.6)))))
+            (modify ?e (val (+ ?ti (integer (* ?v 0.4)))))
             (if (> ?v 3) then
-                (bind ?motivo1 "Te gusto Ingenieria, Empresa y Sociedad")
+                (bind ?motivo1 "Te gusto la asignatura de Ingenieria, Empresa y Sociedad")
                 (assert
                     (Consejo "Ingenieria del Software" ?motivo1)
                     (Consejo "Sistemas de Informacion" ?motivo1)
@@ -482,13 +510,13 @@
         )
         ; Estadistica
         (case 20 then
-            (modify ?a (val (+ ?csi (integer (* ?v 1)))))
-            (modify ?b (val (+ ?is (integer (* ?v 0.8)))))
-            (modify ?c (val (+ ?ic (integer (* ?v 0.2)))))
+            (modify ?a (val (+ ?csi (integer (* ?v 0.8)))))
+            (modify ?b (val (+ ?is (integer (* ?v 0.6)))))
+            (modify ?c (val (+ ?ic (integer (* ?v 0.1)))))
             (modify ?d (val (+ ?si (integer (* ?v 0.8)))))
-            (modify ?e (val (+ ?ti (integer (* ?v 0.2)))))
+            (modify ?e (val (+ ?ti (integer (* ?v 0.1)))))
             (if (> ?v 3) then
-                (bind ?motivo1 "Te gusto Estadistica")
+                (bind ?motivo1 "Te gusto la asignatura de Estadistica")
                 (assert
                     (Consejo "Computacion y Sistemas Inteligentes" ?motivo1)
                     (Consejo "Ingenieria del Software" ?motivo1)
@@ -498,13 +526,13 @@
         )
         ; Sistemas Operativos
         (case 21 then
-            (modify ?a (val (+ ?csi (integer (* ?v 0.2)))))
-            (modify ?b (val (+ ?is (integer (* ?v 0.2)))))
-            (modify ?c (val (+ ?ic (integer (* ?v 0.2)))))
+            (modify ?a (val (+ ?csi (integer (* ?v 0.1)))))
+            (modify ?b (val (+ ?is (integer (* ?v 0.1)))))
+            (modify ?c (val (+ ?ic (integer (* ?v 0.1)))))
             (modify ?d (val (+ ?si (integer (* ?v 1)))))
             (modify ?e (val (+ ?ti (integer (* ?v 0.8)))))
             (if (> ?v 3) then
-                (bind ?motivo1 "Te gusto Sistemas Operativos")
+                (bind ?motivo1 "Te gusto la asignatura de Sistemas Operativos")
                 (assert
                     (Consejo "Tecnologias de la Informacion" ?motivo1)
                     (Consejo "Sistemas de Informacion" ?motivo1)
@@ -513,13 +541,13 @@
         )
         ; Estructuras de Datos
         (case 22 then
-            (modify ?a (val (+ ?csi (integer (* ?v 1)))))
-            (modify ?b (val (+ ?is (integer (* ?v 1)))))
-            (modify ?c (val (+ ?ic (integer (* ?v 0.4)))))
+            (modify ?a (val (+ ?csi (integer (* ?v 0.6)))))
+            (modify ?b (val (+ ?is (integer (* ?v 0.6)))))
+            (modify ?c (val (+ ?ic (integer (* ?v 0.1)))))
             (modify ?d (val (+ ?si (integer (* ?v 0.6)))))
             (modify ?e (val (+ ?ti (integer (* ?v 0.6)))))
             (if (> ?v 3) then
-                (bind ?motivo1 "Te gusto Sistemas Operativos")
+                (bind ?motivo1 "Te gusto la asignatura de Estructuras de datos")
                 (assert
                     (Consejo "Computacion y Sistemas Inteligentes" ?motivo1)
                     (Consejo "Ingenieria del Software" ?motivo1)
@@ -530,11 +558,11 @@
         (case 23 then
             (modify ?a (val (+ ?csi (integer (* ?v 0.6)))))
             (modify ?b (val (+ ?is (integer (* ?v 1)))))
-            (modify ?c (val (+ ?ic (integer (* ?v 0.2)))))
+            (modify ?c (val (+ ?ic (integer (* ?v 0.1)))))
             (modify ?d (val (+ ?si (integer (* ?v 0.4)))))
             (modify ?e (val (+ ?ti (integer (* ?v 0.4)))))
             (if (> ?v 3) then
-                (bind ?motivo1 "Te gusto Sistemas Operativos")
+                (bind ?motivo1 "Te gusto la asignatura de Programacion y Diseno Orientado a Objetos")
                 (assert
                     (Consejo "Ingenieria del Software" ?motivo1)
                 )
@@ -543,13 +571,14 @@
         ; Sistemas Concurrentes y Distribuidos
         (case 24 then
             (modify ?a (val (+ ?csi (integer (* ?v 0.2)))))
-            (modify ?b (val (+ ?is (integer (* ?v 1)))))
+            (modify ?b (val (+ ?is (integer (* ?v 0.6)))))
             (modify ?c (val (+ ?ic (integer (* ?v 0.4)))))
             (modify ?d (val (+ ?si (integer (* ?v 1)))))
             (modify ?e (val (+ ?ti (integer (* ?v 1)))))
             (if (> ?v 3) then
-                (bind ?motivo1 "Te gusto Sistemas Operativos")
+                (bind ?motivo1 "Te gusto la asignatura de Sistemas Concurrentes y Distribuidos")
                 (assert
+                    (Consejo "Ingenieria del Software" ?motivo1)
                     (Consejo "Sistemas de Informacion" ?motivo1)
                     (Consejo "Tecnologias de la Informacion" ?motivo1)
                 )
@@ -563,7 +592,7 @@
             (modify ?d (val (+ ?si (integer (* ?v 0.2)))))
             (modify ?e (val (+ ?ti (integer (* ?v 0.2)))))
             (if (> ?v 3) then
-                (bind ?motivo1 "Te gusto Sistemas Operativos")
+                (bind ?motivo1 "Te gusto la asignatura de Estructura de Computadores")
                 (assert
                     (Consejo "Ingenieria de Computadores" ?motivo1)
                 )
@@ -577,7 +606,7 @@
             (modify ?d (val (+ ?si (integer (* ?v 0.2)))))
             (modify ?e (val (+ ?ti (integer (* ?v 0.2)))))
             (if (> ?v 3) then
-                (bind ?motivo1 "Te gusto Sistemas Operativos")
+                (bind ?motivo1 "Te gusto la asignatura de Arquitectura de Computadores")
                 (assert
                     (Consejo "Ingenieria de Computadores" ?motivo1)
                 )
@@ -586,15 +615,16 @@
         ; Fundamentos de Bases de Datos
         (case 27 then
             (modify ?a (val (+ ?csi (integer (* ?v 0.2)))))
-            (modify ?b (val (+ ?is (integer (* ?v 0.8)))))
+            (modify ?b (val (+ ?is (integer (* ?v 0.6)))))
             (modify ?c (val (+ ?ic (integer (* ?v 0.2)))))
             (modify ?d (val (+ ?si (integer (* ?v 1)))))
-            (modify ?e (val (+ ?ti (integer (* ?v 0.4)))))
+            (modify ?e (val (+ ?ti (integer (* ?v 0.8)))))
             (if (> ?v 3) then
-                (bind ?motivo1 "Te gusto Sistemas Operativos")
+                (bind ?motivo1 "Te gusto la asignatura de Fundamentos de Bases de Datos")
                 (assert
                     (Consejo "Ingenieria del Software" ?motivo1)
                     (Consejo "Sistemas de Informacion" ?motivo1)
+                    (Consejo "Tecnologias de la Informacion" ?motivo1)
                 )
             )
         )
@@ -606,7 +636,7 @@
             (modify ?d (val (+ ?si (integer (* ?v 0.2)))))
             (modify ?e (val (+ ?ti (integer (* ?v 0.2)))))
             (if (> ?v 3) then
-                (bind ?motivo1 "Te gusto Algoritmica")
+                (bind ?motivo1 "Te gusto la asignatura de Algoritmica")
                 (assert
                     (Consejo "Computacion y Sistemas Inteligentes" ?motivo1)
                 )
@@ -620,7 +650,7 @@
             (modify ?d (val (+ ?si (integer (* ?v 0.2)))))
             (modify ?e (val (+ ?ti (integer (* ?v 0.2)))))
             (if (> ?v 3) then
-                (bind ?motivo1 "Te gusto Inteligencia Artificial")
+                (bind ?motivo1 "Te gusto la asignatura de Inteligencia Artificial")
                 (assert
                     (Consejo "Computacion y Sistemas Inteligentes" ?motivo1)
                 )
@@ -634,7 +664,7 @@
             (modify ?d (val (+ ?si (integer (* ?v 0.2)))))
             (modify ?e (val (+ ?ti (integer (* ?v 0.2)))))
             (if (> ?v 3) then
-                (bind ?motivo1 "Te gusto Fundamentos de Ingenieria del Software")
+                (bind ?motivo1 "Te gusto la asignatura de Fundamentos de Ingenieria del Software")
                 (assert
                     (Consejo "Ingenieria del Software" ?motivo1)
                 )
